@@ -270,6 +270,7 @@ class DKGE_Model(nn.Module):
                     all_true_triples,
                     args.nentity,
                     args.nentity_re,
+                    args.negative_sample_size_en_test,
                     'head-batch'
                 ),
                 batch_size=args.test_batch_size_en,
@@ -282,6 +283,7 @@ class DKGE_Model(nn.Module):
                     all_true_triples,
                     args.nentity,
                     args.nentity_re,
+                    args.negative_sample_size_en_test,
                     'tail-batch'
                 ),
                 batch_size = args.test_batch_size_en,
@@ -295,6 +297,7 @@ class DKGE_Model(nn.Module):
                     all_true_triples,
                     args.ntype,
                     args.ntype_re,
+                    args.negative_sample_size_ty_test,
                     'head-batch'
                 ),
                 batch_size=args.test_batch_size_ty,
@@ -307,6 +310,7 @@ class DKGE_Model(nn.Module):
                     all_true_triples,
                     args.ntype,
                     args.ntype_re,
+                    args.negative_sample_size_ty_test,
                     'tail-batch'
                 ),
                 batch_size = args.test_batch_size_ty,
@@ -324,27 +328,28 @@ class DKGE_Model(nn.Module):
 
         with torch.no_grad():
             for test_dataset in test_dataset_list:
-                for positive_sample, negative_sample, filter_bias, mode in test_dataset:
+                for positive_sample, negative_sample, mode in test_dataset:
                     if args.cuda:
                         positive_sample = positive_sample.cuda()
                         negative_sample = negative_sample.cuda()
-                        filter_bias = filter_bias.cuda()
                     batch_size = positive_sample.size(0)
 
                     score = model((positive_sample, negative_sample),mode)
-                    score = score + filter_bias
+                  
 
                     argsort = torch.argsort(score, dim = 1, descending=True)
 
                     if mode == 'head-batch':
-                        positive_arg = positive_sample[:,0]
+                        #positive_arg = positive_sample[:,0]
+                        positive_arg =  201
                     elif mode == 'tail-batch':
-                        positive_arg = positive_sample[:,2]
+                        positive_arg =  201
+                        #positive_arg = positive_sample[:,2]
                     else:
                         raise ValueError('mode %s not supported' % mode)
 
                     for i in range(batch_size):
-                        ranking = (argsort[i, :] == positive_arg[i]).nonzero()
+                        ranking = (argsort[i, :] == 200).nonzero()
                         assert ranking.size(0) == 1
                         ranking = 1 + ranking.item()
 
@@ -368,7 +373,7 @@ class DKGE_Model(nn.Module):
                     step = step + 1
 
         metrics = {}
-        for metric in logs[0].key():
+        for metric in logs[0].keys():
             metrics[metric] = sum([log[metric] for log in logs])/len(logs)
 
 

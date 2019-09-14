@@ -1,10 +1,11 @@
 from __future__ import absolute_import
+
 from __future__ import division
 from __future__ import print_function
 
 import numpy as np
 import torch
-
+import random
 from torch.utils.data import Dataset
 
 
@@ -120,12 +121,13 @@ class TrainDataset_en(Dataset):
         return true_head, true_tail
 
 class TestDataset_en(Dataset):
-    def __init__(self, test_entity_triples,all_true_triples_entity, nentity,nentity_re, mode):
+    def __init__(self, test_entity_triples,all_true_triples_entity, nentity,nentity_re,negative_sample_size_en_test, mode):
         self.len = len(test_entity_triples)
         self.en_triple_set = set(all_true_triples_entity)
         self.en_triples = test_entity_triples
         self.nentity = nentity
         self.nentity_re = nentity_re
+        self.negative_sample_size_en_test = negative_sample_size_en_test
         self.mode = mode
 
     def __len__(self):
@@ -134,29 +136,60 @@ class TestDataset_en(Dataset):
     def __getitem__(self, idx):
         head_en_en, relation_en_en, tail_en_en = self.en_triples[idx]
 
+
         if self.mode == 'head-batch':
-            tmp_en_en = [(0, rand_head_en_en) if (rand_head_en_en, relation_en_en, tail_en_en) not in self.en_triple_set else (-1, head_en_en) for rand_head_en_en in range(self.nentity)]
-            tmp_en_en[head_en_en] = (0, head_en_en)
+            negative_sample_size_en_double = self.negative_sample_size_en_test * 100            
+            temp_id_list = random.sample(range(0, self.nentity),negative_sample_size_en_double)
+            tmp_en_en = dict()
+            temp_key = 0
+            idx_list = 0
+            while temp_key < self.negative_sample_size_en_test:
+                temp_id = temp_id_list[idx_list]
+                idx_list = idx_list + 1
+                if (temp_id, relation_en_en, tail_en_en) not in self.en_triple_set:
+                    tmp_en_en[temp_key] = int(temp_id) 
+                    temp_key = temp_key + 1
+            negative_sample_en_en =  list(tmp_en_en.values())
+            negative_sample_en_en.append(int(head_en_en))
+            negative_sample_en_en = torch.LongTensor(negative_sample_en_en)
+            # test in all entities
+            negative_sample_en_en = []
+            #for iidx in range(0, self.nentity)
+            #    if (iidx, relation_en_en, tail_en_en) not in self.en_triple_set:
+            #        negative_sample_en_en.append(int(iidx))
+            #    else
+            #        negative_sample_en_en.append(int(head_en_en))
+            
+            
+
         elif self.mode == 'tail-batch':
-            tmp_en_en = [(0, rand_tail_en_en) if (head_en_en, relation_en_en, rand_tail_en_en) not in self.en_triple_set else (-1, tail_en_en) for rand_tail_en_en in range(self.nentity)]
-            tmp_en_en[tail_en_en] = (0, tail_en_en)
+            negative_sample_size_en_double = self.negative_sample_size_en_test * 100
+            temp_id_list = random.sample(range(0, self.nentity),negative_sample_size_en_double)
+            tmp_en_en = dict()
+            temp_key = 0
+            idx_list = 0
+            while temp_key < self.negative_sample_size_en_test:
+                temp_id = temp_id_list[idx_list]
+                idx_list = idx_list + 1
+                if (head_en_en, relation_en_en, temp_id) not in self.en_triple_set:
+                    tmp_en_en[temp_key] = int(temp_id) 
+                    temp_key = temp_key + 1
+            negative_sample_en_en =  list(tmp_en_en.values())
+            negative_sample_en_en.append(int(tail_en_en))
+            negative_sample_en_en = torch.LongTensor(negative_sample_en_en)
+            
         else:
             raise ValueError('negative batch mode %s not supported' % self.mode)
 
-        tmp_en_en = torch.LongTensor(tmp_en_en)
-        filter_bias_en_en = tmp_en_en[:,0].float()
-        negative_sample_en_en = tmp_en_en[:,1]
         positive_sample_en_en = torch.LongTensor((head_en_en, relation_en_en, tail_en_en))
 
-        return positive_sample_en_en, negative_sample_en_en, filter_bias_en_en, self.mode
+        return positive_sample_en_en, negative_sample_en_en, self.mode
     @staticmethod
     def collate_fn(data):
         positive_sample_en_en = torch.stack([_[0] for _ in data], dim=0)
         negative_sample_en_en = torch.stack([_[1] for _ in data], dim=0)
-        filter_bias_en_en = torch.stack([_[2] for _ in data], dim=0)
-        mode = data[0][3]
-        return positive_sample_en_en, negative_sample_en_en, filter_bias_en_en, mode
-
+        mode = data[0][2]
+        return positive_sample_en_en, negative_sample_en_en, mode
 
 
 
@@ -205,7 +238,7 @@ class TrainDataset_ty(Dataset):
                 raise ValueError('Training batch mode %s not supported' % self.mode)
             negative_sample_ty_ty = negative_sample_ty_ty[mask]
             negative_sample_list_ty_ty.append(negative_sample_ty_ty)
-            negative_sample_size_ty_ty = negative_sample_size_ty_ty + negative_sample_size_ty_ty.size
+            negative_sample_size_ty_ty = negative_sample_size_ty_ty + negative_sample_ty_ty.size
         negative_sample_ty_ty = np.concatenate(negative_sample_list_ty_ty)[:self.negative_sample_size_ty]
         negative_sample_ty_ty = torch.from_numpy(negative_sample_ty_ty)
         positive_sample_ty_ty = torch.LongTensor(positive_sample_ty_ty)
@@ -272,12 +305,13 @@ class TrainDataset_ty(Dataset):
 
 
 class TestDataset_ty(Dataset):
-    def __init__(self,test_type_triples,all_true_triples_type,ntype,ntype_re,mode):
+    def __init__(self,test_type_triples,all_true_triples_type,ntype,ntype_re,negative_sample_size_ty_test, mode):
         self.len = len(test_type_triples)
         self.ty_triple_set = set(all_true_triples_type)
         self.ty_triples = test_type_triples
         self.ntype = ntype
         self.ntype_re = ntype_re
+        self.negative_sample_size_ty_test = negative_sample_size_ty_test
         self.mode = mode
 
     def __len__(self):
@@ -286,29 +320,53 @@ class TestDataset_ty(Dataset):
     def __getitem__(self, idx):
         head_ty_ty, relation_ty_ty, tail_ty_ty = self.ty_triples[idx]
 
+        
         if self.mode == 'head-batch':
-            tmp_ty_ty = [(0, rand_head_ty_ty) if (rand_head_ty_ty, relation_ty_ty, tail_ty_ty) not in self.ty_triple_set else (-1, head_ty_ty) for rand_head_ty_ty in range(self.ntype)]
-            tmp_ty_ty[head_ty_ty] = (0, head_ty_ty)
+            negative_sample_size_ty_double = self.negative_sample_size_ty_test * 100
+            temp_id_list = random.sample(range(0, self.ntype),negative_sample_size_ty_double)
+            tmp_ty_ty = dict()
+            temp_key = 0
+            idx_list = 0
+            while temp_key < self.negative_sample_size_ty_test:
+                temp_id = temp_id_list[idx_list]
+                idx_list = idx_list + 1
+                if (temp_id, relation_ty_ty, tail_ty_ty) not in self.ty_triple_set:
+                    tmp_ty_ty[temp_key] = int(temp_id) 
+                    temp_key = temp_key + 1
+            
+            negative_sample_ty_ty =  list(tmp_ty_ty.values())
+            negative_sample_ty_ty.append(int(head_ty_ty))
+            negative_sample_ty_ty = torch.LongTensor(negative_sample_ty_ty)
+            
 
         elif self.mode == 'tail-batch':
-            tmp_ty_ty = [(0, rand_tail_ty_ty) if (head_ty_ty, relation_ty_ty, rand_tail_ty_ty) not in self.ty_triple_set else (-1, tail_ty_ty) for rand_tail_ty_ty in range(self.ntype)]
-            tmp_ty_ty[tail_ty_ty] = (0, tail_ty_ty)
+            negative_sample_size_ty_double = self.negative_sample_size_ty_test * 100
+            temp_id_list = random.sample(range(0, self.ntype),negative_sample_size_ty_double)
+            tmp_ty_ty = dict()
+            temp_key = 0
+            idx_list = 0
+            while temp_key < self.negative_sample_size_ty_test:
+                temp_id = temp_id_list[idx_list]
+                idx_list = idx_list + 1
+                if (head_ty_ty, relation_ty_ty, temp_id) not in self.ty_triple_set:
+                    tmp_ty_ty[temp_key] = int(temp_id) 
+                    temp_key = temp_key + 1
+            negative_sample_ty_ty =  list(tmp_ty_ty.values())
+            negative_sample_ty_ty.append(int(tail_ty_ty))
+            negative_sample_ty_ty = torch.LongTensor(negative_sample_ty_ty)
+            
         else:
             raise ValueError('negative batch mode %s not supported' % self.mode)
 
-        tmp_ty_ty = torch.LongTensor(tmp_ty_ty)
-        filter_bias_ty_ty = tmp_ty_ty[:, 0].float()
-        negative_sample_ty_ty = tmp_ty_ty[:, 1]
-        positive_sample_ty_ty = torch.LongTensor((head_ty_ty, relation_ty_ty, tail_ty_ty))
-
-        return positive_sample_ty_ty, negative_sample_ty_ty, filter_bias_ty_ty, self.mode
+        positive_sample_ty_ty = torch.LongTensor((head_en_en, relation_en_en, tail_en_en))
+        
+        return positive_sample_ty_ty, negative_sample_ty_ty, self.mode
     @staticmethod
     def collate_fn(data):
         positive_sample_ty_ty = torch.stack([_[0] for _ in data], dim=0)
         negative_sample_ty_ty = torch.stack([_[1] for _ in data], dim=0)
-        filter_bias_ty_ty = torch.stack([_[2] for _ in data], dim=0)
-        mode = data[0][3]
-        return positive_sample_ty_ty, negative_sample_ty_ty, filter_bias_ty_ty, mode
+        mode = data[0][2]
+        return positive_sample_ty_ty, negative_sample_ty_ty, mode
 
 class BidirectionalOneShotIterator(object):
     def __init__(self, dataloader_head, dataloader_tail):

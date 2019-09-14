@@ -1,0 +1,5 @@
+save/
+data/
+*/__pycache__/
+*.swp
+.python-version

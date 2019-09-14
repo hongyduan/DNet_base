@@ -17,8 +17,8 @@ def parse_args(args=None):
     parser.add_argument('--fl', default=0, type=int) #0:en, 1:ty
     parser.add_argument('-r_e', '--regularization', default=0.0, type=float)
 
-    parser.add_argument('--cuda', action='store_true', help='use GPU')
-    parser.add_argument('--data_path', type=str, default="/Users/bubuying/PycharmProjects/DNet/data/dbpedia_result")
+    parser.add_argument('--cuda', action='store_true', help='use GPU', default=True)
+    parser.add_argument('--data_path', type=str, default="/storage/hyduan/DNet/DNet_base/data/dbpedia_result")
     parser.add_argument('-cpu', '--cpu_num', default=10, type=int)
     parser.add_argument('--nentity', type=int, default=0, help='DO NOT MANUALLY SET')
     parser.add_argument('--nentity_re', type=int, default=0, help='DO NOT MANUALLY SET')
@@ -34,35 +34,37 @@ def parse_args(args=None):
     parser.add_argument('--entity_model', default='TransE', type=str)
     parser.add_argument('--type_model', default='TransE', type=str)
     parser.add_argument('-n_en', '--negative_sample_size_en', default=128, type=int)
+    parser.add_argument('-n_en_test', '--negative_sample_size_en_test', default=200, type=int)
     parser.add_argument('-n_ty', '--negative_sample_size_ty', default=128, type=int)
+    parser.add_argument('-n_ty_test', '--negative_sample_size_ty_test', default=200, type=int)
     parser.add_argument('-den', '--hidden_dim_en', default=500, type=int)
     parser.add_argument('-dty', '--hidden_dim_ty', default=500, type=int)
     parser.add_argument('-g_en', '--gamma_en', default=12.0, type=float)
     parser.add_argument('-g_ty', '--gamma_ty', default=12.0, type=float)
     parser.add_argument('-b_en', '--batch_size_en', default=1024, type=int)
-    parser.add_argument('-b_ty', '--batch_size_ty', default=1024, type=int)
+    parser.add_argument('-b_ty', '--batch_size_ty', default=512, type=int)
     parser.add_argument('--test_batch_size_en', default=4, type=int, help='valid/test batch size in entity graph')
     parser.add_argument('--test_batch_size_ty', default=4, type=int, help='valid/test batch size in type graph')
     parser.add_argument('--uni_weight_en', action='store_true', help='Otherwise use subsampling weighting like in word2vec in entity graph')
     parser.add_argument('--uni_weight_ty', action='store_true', help='Otherwise use subsampling weighting like in word2vec in type graph')
-    parser.add_argument('-lr_en', '--learning_rate_en', default=0.0001, type=float)
-    parser.add_argument('-lr_ty', '--learning_rate_ty', default=0.0001, type=float)
+    parser.add_argument('-lr_en', '--learning_rate_en', default=0.001, type=float)
+    parser.add_argument('-lr_ty', '--learning_rate_ty', default=0.001, type=float)
     parser.add_argument('-init_en', '--init_checkpoint_en', default=None, type=str)
     parser.add_argument('-init_ty', '--init_checkpoint_ty', default=None, type=str)
-    parser.add_argument('-save_en', '--save_path_en', default="/Users/bubuying/Downloads/Sin_research/KnowledgeGraphEmbedding/save/en", type=str)
-    parser.add_argument('-save_ty', '--save_path_ty', default="/Users/bubuying/Downloads/Sin_research/KnowledgeGraphEmbedding/save/ty", type=str)
-    parser.add_argument('--max_steps_en', default=1000, type=int)
+    parser.add_argument('-save_en', '--save_path_en', default="/storage/hyduan/DNet/DNet_base/save/en", type=str)
+    parser.add_argument('-save_ty', '--save_path_ty', default="/storage/hyduan/DNet/DNet_base/save/ty", type=str)
+    parser.add_argument('--max_steps_en', default=109400, type=int)
     parser.add_argument('--max_steps_ty', default=1000, type=int)
     parser.add_argument('--warm_up_steps_en', default=None, type=int)
     parser.add_argument('--warm_up_steps_ty', default=None, type=int)
-    parser.add_argument('--save_checkpoint_steps_en', default=1000, type=int)
-    parser.add_argument('--save_checkpoint_steps_ty', default=1000, type=int)
+    parser.add_argument('--save_checkpoint_steps_en', default=5000, type=int)
+    parser.add_argument('--save_checkpoint_steps_ty', default=50, type=int)
     parser.add_argument('--valid_steps_en', default=1000, type=int)
-    parser.add_argument('--valid_steps_ty', default=1000, type=int)
-    parser.add_argument('--log_steps_en', default=10, type=int, help='train log every xx steps in entity graph')
+    parser.add_argument('--valid_steps_ty', default=10, type=int)
+    parser.add_argument('--log_steps_en', default=500, type=int, help='train log every xx steps in entity graph')
     parser.add_argument('--log_steps_ty', default=10, type=int, help='train log every xx steps in type graph')
-    parser.add_argument('--test_log_steps_en', default=10, type=int, help='valid/test log every xx steps in entity graph')
-    parser.add_argument('--test_log_steps_ty', default=10, type=int, help='valid/test log every xx steps in type graph')
+    parser.add_argument('--test_log_steps_en', default=60, type=int, help='valid/test log every xx steps in entity graph')
+    parser.add_argument('--test_log_steps_ty', default=2, type=int, help='valid/test log every xx steps in type graph')
 
     parser.add_argument('-edou', '--double_node_embedding_en', action='store_true')
     parser.add_argument('-erdou', '--double_node_re_embedding_en', action='store_true')
@@ -77,21 +79,21 @@ def override_config(args):
             argparse_dict_en = json.load(fjson)
         if args.data_path is None:
             args.data_path = argparse_dict_en['data_path']
-        args.model_en = argparse_dict_en['model']
-        args.double_node_embedding_en = argparse_dict_en['double_node_embedding']
-        args.double_node_re_embedding_en = argparse_dict_en['double_node_re_embedding']
-        args.hidden_dim_en = argparse_dict_en['hidden_dim']
-        args.test_batch_size_en = argparse_dict_en['test_batch_size']
+        args.model_en = argparse_dict_en['entity_model']
+        args.double_node_embedding_en = argparse_dict_en['double_node_embedding_en']
+        args.double_node_re_embedding_en = argparse_dict_en['double_node_re_embedding_en']
+        args.hidden_dim_en = argparse_dict_en['hidden_dim_en']
+        args.test_batch_size_en = argparse_dict_en['test_batch_size_en']
     else:
         with open(os.path.join(args.init_checkpoint_ty, 'config.json'), 'r') as fjson:
             argparse_dict_ty = json.load(fjson)
         if args.data_path is None:
             args.data_path = argparse_dict_ty['data_path']
-        args.model_ty = argparse_dict_ty['model']
-        args.double_node_embedding_ty = argparse_dict_ty['double_node_embedding']
-        args.double_node_re_embedding_ty = argparse_dict_ty['double_node_re_embedding']
-        args.hidden_dim_ty = argparse_dict_ty['hidden_dim']
-        args.test_batch_size_ty = argparse_dict_ty['test_batch_size']
+        args.model_ty = argparse_dict_ty['type_model']
+        args.double_node_embedding_ty = argparse_dict_ty['double_node_embedding_ty']
+        args.double_node_re_embedding_ty = argparse_dict_ty['double_node_re_embedding_ty']
+        args.hidden_dim_ty = argparse_dict_ty['hidden_dim_ty']
+        args.test_batch_size_ty = argparse_dict_ty['test_batch_size_ty']
 
 
 def save_model(model, optimizer, save_variable_list, args):
@@ -104,7 +106,7 @@ def save_model(model, optimizer, save_variable_list, args):
         torch.save({
             **save_variable_list,
             'model_state_dict': model.state_dict(),
-            'opyimizer_state_dict': optimizer.state_dict()},
+            'optimizer_state_dict': optimizer.state_dict()},
             os.path.join(args.save_path_en, 'checkpoint_en')
         )
         entity_embedding = model.node_embedding.detach().cpu().numpy()
@@ -125,7 +127,7 @@ def save_model(model, optimizer, save_variable_list, args):
         torch.save({
             **save_variable_list,
             'model_state_dict': model.state_dict(),
-            'opyimizer_state_dict': optimizer.state_dict()},
+            'optimizer_state_dict': optimizer.state_dict()},
             os.path.join(args.save_path_ty, 'checkpoint_ty')
         )
         type_embedding = model.node_embedding.detach().cpu().numpy()
@@ -142,7 +144,7 @@ def save_model(model, optimizer, save_variable_list, args):
 
 def read_triple(file_path, node2id, node_relation2id):
     triples = []
-    with open(file_path) as fin:
+    with open(file_path, encoding='utf8') as fin:
         for line in fin:
             h, r, t = line.strip().split('\t')
             triples.append((node2id[h], node_relation2id[r], node2id[t]))
@@ -237,8 +239,8 @@ def main(args):
         set_logger(args)
         # 获取所有实体 final_entity.txt
         entity2id = dict()
-        with open(os.path.join(args.data_path, 'final_entity_order.txt')) as fin:
-            for line in fin:
+        with open(os.path.join(args.data_path, 'final_entity_order.txt'), encoding='utf8') as fin:
+            for line in fin.readlines():
                 eid, entity = line.strip().split('\t')
                 entity2id[entity] = int(eid)
         nentity = len(entity2id)
@@ -331,7 +333,7 @@ def main(args):
         step_en = init_step_en
         logging.info('Start Training of entity graph...')
         logging.info('init_step_en = %d' % init_step_en)
-        logging.info('learning_rate_en = %d' % current_learning_rate_en)
+        logging.info('learning_rate_en = %f' % current_learning_rate_en)
         logging.info('batch_size_en = %d' % args.batch_size_en)
         logging.info('hidden_dim_en = %d' % args.hidden_dim_en)
         logging.info('gamma_en = %f' % args.gamma_en)
@@ -345,7 +347,7 @@ def main(args):
                 if step_en >= warm_up_steps_en:
                     current_learning_rate_en = current_learning_rate_en / 10
                     logging.info('Changing learning_rate_en to %f at step %d' % (current_learning_rate_en, step_en))
-                    optimizer_en = torch.opyim.Adam(
+                    optimizer_en = torch.optim.Adam(
                         filter(lambda p: p.requires_grad, entity_kge_model.parameters()),
                         lr=current_learning_rate_en
                     )
@@ -367,7 +369,7 @@ def main(args):
                     log_metrics('Training average in entity graph', step_en, metrics_en)
                     training_logs_en = []
 
-                if args.do_valid_en and step_en % args.valid_steps_en == 0:
+                if args.do_valid_en and step_en % args.valid_steps_en == 0 and step_en!=0 and False:
                     logging.info('Evaluating on Valid Dataset in entity graph ...')
                     metrics_en = entity_kge_model.test_step(entity_kge_model, val_entity_triples, all_true_triples_entity, args)
                     log_metrics('Valid', step_en, metrics_en)
@@ -379,7 +381,7 @@ def main(args):
             }
             save_model(entity_kge_model, optimizer_en, save_variable_list_en, args)
 
-        if args.do_valid_en:
+        if args.do_valid_en and False:
             logging.info('Evaluating on Valid Dataset in entity graph...')
             metrics_en = entity_kge_model.test_step(entity_kge_model, val_entity_triples, all_true_triples_entity, args)
             log_metrics('Valid', step_en, metrics_en)
@@ -502,7 +504,7 @@ def main(args):
         step_ty = init_step_ty
         logging.info('Start Training of type graph...')
         logging.info('init_step_ty = %d' % init_step_ty)
-        logging.info('learning_rate_ty = %d' % current_learning_rate_ty)
+        logging.info('learning_rate_ty = %f' % current_learning_rate_ty)
         logging.info('batch_size_ty = %d' % args.batch_size_ty)
         logging.info('hidden_dim_ty = %d' % args.hidden_dim_ty)
         logging.info('gamma_ty = %f' % args.gamma_ty)
@@ -516,7 +518,7 @@ def main(args):
                 if step_ty >= warm_up_steps_ty:
                     current_learning_rate_ty = current_learning_rate_ty / 10
                     logging.info('Changing learning_rate_ty to %f at step %d' % (current_learning_rate_ty, step_ty))
-                    optimizer_ty = torch.opyim.Adam(
+                    optimizer_ty = torch.optim.Adam(
                         filter(lambda p: p.requires_grad, type_kge_model.parameters()),
                         lr = current_learning_rate_ty
                     )
@@ -532,12 +534,12 @@ def main(args):
 
                 if step_ty % args.log_steps_ty == 0:
                     metrics_ty = {}
-                    for metric_ty in training_logs_ty[0].key():
+                    for metric_ty in training_logs_ty[0].keys():
                         metrics_ty[metric_ty] = sum([log_ty[metric_ty] for log_ty in training_logs_ty])/len(training_logs_ty)
                     log_metrics('Training average in type graph', step_ty, metrics_ty)
                     training_logs_ty = []
 
-                if args.do_valid_ty and step_ty % args.valid_steps_ty == 0:
+                if False and args.do_valid_ty and step_ty % args.valid_steps_ty == 0:
                     logging.info('Evaluating on Valid Dataset in type graph ...')
                     metrics_ty = type_kge_model.test_step(type_kge_model, val_type_triples, all_true_triples_type, args)
                     log_metrics('Valid', step_ty, metrics_ty)
@@ -549,7 +551,7 @@ def main(args):
             }
             save_model(type_kge_model, optimizer_ty, save_variable_list_ty, args)
 
-        if args.do_valid_ty:
+        if args.do_valid_ty and False:
             logging.info('Evaluating on Valid Dataset in type graph...')
             metrics_ty = type_kge_model.test_step(type_kge_model, val_type_triples, all_true_triples_type, args)
             log_metrics('Valid', step_ty, metrics_ty)
