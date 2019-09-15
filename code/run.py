@@ -17,8 +17,8 @@ def parse_args(args=None):
     parser.add_argument('--fl', default=0, type=int) #0:en, 1:ty
     parser.add_argument('-r_e', '--regularization', default=0.0, type=float)
 
-    parser.add_argument('--cuda', action='store_true', help='use GPU', default=True)
-    parser.add_argument('--data_path', type=str, default="/storage/hyduan/DNet/DNet_base/data/dbpedia_result")
+    parser.add_argument('--cuda', action='store_true', help='use GPU')
+    parser.add_argument('--data_path', type=str, default="/storage/hyduan/DNet/DNet_base/data/yago_result")
     parser.add_argument('-cpu', '--cpu_num', default=10, type=int)
     parser.add_argument('--nentity', type=int, default=0, help='DO NOT MANUALLY SET')
     parser.add_argument('--nentity_re', type=int, default=0, help='DO NOT MANUALLY SET')
@@ -493,7 +493,7 @@ def main(args):
             checkpoint_ty = torch.load(os.path.join(args.init_checkpoint_ty, 'checkpoint_ty'))
             init_step_ty = checkpoint_ty['step']
             type_kge_model.load_state_dict(checkpoint_ty['model_state_dict'])
-            if args.do_train:
+            if args.do_train_ty:
                 current_learning_rate_ty = checkpoint_ty['current_learning_rate']
                 warm_up_steps = checkpoint_ty['warm_up_steps']
                 optimizer_ty.load_state_dict(checkpoint_ty['optimizer_state_dict'])

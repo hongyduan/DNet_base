@@ -328,28 +328,28 @@ class DKGE_Model(nn.Module):
 
         with torch.no_grad():
             for test_dataset in test_dataset_list:
-                for positive_sample, negative_sample, mode in test_dataset:
+                for positive_sample, negative_sample, filter_bias, mode in test_dataset:
+
                     if args.cuda:
                         positive_sample = positive_sample.cuda()
                         negative_sample = negative_sample.cuda()
+                        filter_bias = filter_bias.cuda()
                     batch_size = positive_sample.size(0)
-
+                    
                     score = model((positive_sample, negative_sample),mode)
-                  
+                    score = score + filter_bias
 
                     argsort = torch.argsort(score, dim = 1, descending=True)
 
                     if mode == 'head-batch':
-                        #positive_arg = positive_sample[:,0]
-                        positive_arg =  201
+                        positive_arg = positive_sample[:,0]
                     elif mode == 'tail-batch':
-                        positive_arg =  201
-                        #positive_arg = positive_sample[:,2]
+                        positive_arg = positive_sample[:,2]
                     else:
                         raise ValueError('mode %s not supported' % mode)
 
                     for i in range(batch_size):
-                        ranking = (argsort[i, :] == 200).nonzero()
+                        ranking = (argsort[i, :] == positive_arg[i]).nonzero()
                         assert ranking.size(0) == 1
                         ranking = 1 + ranking.item()
 
