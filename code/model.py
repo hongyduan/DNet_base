@@ -9,13 +9,14 @@ from dataloader import TestDataset_en, TestDataset_ty
 # 实体embedding 模型
 class DKGE_Model(nn.Module):
 
-    def __init__(self, model_name, nnode, nnode_re, hidden_dim, gamma, double_node_embedding=False, double_node_re_embedding=False):
+    def __init__(self, model_name, nnode, nnode_re, hidden_dim, gamma, gamma_intra, double_node_embedding=False, double_node_re_embedding=False):
         super(DKGE_Model, self).__init__()
         self.model_name = model_name
         self.nnode = nnode
         self.nnode_re = nnode_re
         self.hidden_dim = hidden_dim
         self.epsilon = 2.0
+        self.gamma_intra = gamma_intra
         self.gamma = nn.Parameter(
             torch.Tensor([gamma]),
             requires_grad = False
@@ -141,7 +142,7 @@ class DKGE_Model(nn.Module):
             score = head + (relation - tail)
         else:
             score = (head + relation) - tail
-        score = self.gamma.item() - torch.norm(score, p=1, dim=2)
+        score = -torch.norm(score, p=2, dim=2)
         return score
 
     def DistMult(self, head, relation, tail, mode):
@@ -229,17 +230,12 @@ class DKGE_Model(nn.Module):
             subsampling_weight= subsampling_weight.cuda()
 
         negative_score = model((positive_sample, negative_sample), mode=mode)
-        negative_score = F.logsigmoid(-negative_score).mean(dim = 1)
-
-
         positive_score = model(positive_sample)
-        positive_score = F.logsigmoid(positive_score).squeeze(dim = 1)
-
-        positive_sample_loss = - (subsampling_weight * positive_score).sum() / subsampling_weight.sum()
-        negative_sample_loss = - (subsampling_weight * negative_score).sum() / subsampling_weight.sum()
-
-        loss = (positive_sample_loss + negative_sample_loss) / 2
-
+        positive_sample_loss = positive_score
+        negative_sample_loss = negative_score
+        gg = torch.ones((2))
+        gg = gg.new_full(positive_score.size(), model.gamma_intra).cuda()
+        loss = F.relu(gg + positive_score - negative_score).mean()
 
         if args.regularization != 0.0:
             regularization = args.regularization * (
@@ -253,8 +249,8 @@ class DKGE_Model(nn.Module):
         optimizer.step()
         log={
             **regularization_log,
-            'positive_sample_loss': positive_sample_loss.item(),
-            'negative_sample_loss': negative_sample_loss.item(),
+            'positive_sample_loss': positive_sample_loss.mean().item(),
+            'negative_sample_loss': negative_sample_loss.mean().item(),
             'loss': loss.item()
         }
         return log

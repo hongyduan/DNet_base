@@ -122,6 +122,7 @@ class TrainDataset_en(Dataset):
 
 class TestDataset_en(Dataset):
     def __init__(self, test_entity_triples,all_true_triples_entity, nentity,nentity_re,negative_sample_size_en_test, mode):
+
         self.len = len(test_entity_triples)
         self.en_triple_set = set(all_true_triples_entity)
         self.en_triples = test_entity_triples

@@ -39,8 +39,11 @@ def parse_args(args=None):
     parser.add_argument('-n_ty_test', '--negative_sample_size_ty_test', default=200, type=int)
     parser.add_argument('-den', '--hidden_dim_en', default=500, type=int)
     parser.add_argument('-dty', '--hidden_dim_ty', default=500, type=int)
+    parser.add_argument('-den_relation', '--hidden_dim_en_relation', default=50, type=int)
+    parser.add_argument('-dty_relation', '--hidden_dim_ty_relation', default=50, type=int)
     parser.add_argument('-g_en', '--gamma_en', default=12.0, type=float)
     parser.add_argument('-g_ty', '--gamma_ty', default=12.0, type=float)
+    parser.add_argument('-g_ga', '--gamma_intra', default=0.5, type=float)
     parser.add_argument('-b_en', '--batch_size_en', default=1024, type=int)
     parser.add_argument('-b_ty', '--batch_size_ty', default=512, type=int)
     parser.add_argument('--test_batch_size_en', default=4, type=int, help='valid/test batch size in entity graph')
@@ -280,6 +283,7 @@ def main(args):
             nnode_re = args.nentity_re,
             hidden_dim = args.hidden_dim_en,
             gamma = args.gamma_en,
+            gamma_intra = args.gamma_intra,
             double_node_embedding=args.double_node_embedding_en,
             double_node_re_embedding=args.double_node_re_embedding_en
         )
@@ -309,7 +313,8 @@ def main(args):
             current_learning_rate_en = args.learning_rate_en
             optimizer_en = torch.optim.Adam(
                 filter(lambda p: p.requires_grad, entity_kge_model.parameters()),
-                lr=current_learning_rate_en
+                lr=current_learning_rate_en,
+                amsgrad = True
             )
             if args.warm_up_steps_en:
                 warm_up_steps_en = args.warm_up_steps_en
@@ -349,7 +354,8 @@ def main(args):
                     logging.info('Changing learning_rate_en to %f at step %d' % (current_learning_rate_en, step_en))
                     optimizer_en = torch.optim.Adam(
                         filter(lambda p: p.requires_grad, entity_kge_model.parameters()),
-                        lr=current_learning_rate_en
+                        lr=current_learning_rate_en,
+                        amsgrad = True
                     )
                     warm_up_steps_en = warm_up_steps_en * 3
 
@@ -451,6 +457,7 @@ def main(args):
             nnode_re = args.ntype_re,
             hidden_dim = args.hidden_dim_ty,
             gamma = args.gamma_ty,
+            gamma_intra = args.gamma_intra,
             double_node_embedding=args.double_node_embedding_ty,
             double_node_re_embedding=args.double_node_re_embedding_ty
         )
@@ -480,7 +487,8 @@ def main(args):
             current_learning_rate_ty = args.learning_rate_ty
             optimizer_ty = torch.optim.Adam(
                 filter(lambda p: p.requires_grad, type_kge_model.parameters()),
-                lr=current_learning_rate_ty
+                lr=current_learning_rate_ty,
+                amsgrad = True
             )
             if args.warm_up_steps_ty:
                 warm_up_steps_ty = args.warm_up_steps_ty
@@ -520,7 +528,8 @@ def main(args):
                     logging.info('Changing learning_rate_ty to %f at step %d' % (current_learning_rate_ty, step_ty))
                     optimizer_ty = torch.optim.Adam(
                         filter(lambda p: p.requires_grad, type_kge_model.parameters()),
-                        lr = current_learning_rate_ty
+                        lr = current_learning_rate_ty,
+                        amsgrad = True
                     )
                     warm_up_steps_ty = warm_up_steps_ty * 3
 
