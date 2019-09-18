@@ -253,6 +253,7 @@ def main(args):
         with open(os.path.join(args.data_path, 'ffinal_en_relation_order.txt')) as fin:
             for line in fin:
                 en_reid, entity_relation = line.strip().split('\t')
+
                 entity_relation2id[entity_relation] = int(en_reid)
         nentity_relation = len(entity_relation2id)
 

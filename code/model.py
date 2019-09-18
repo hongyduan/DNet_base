@@ -235,7 +235,7 @@ class DKGE_Model(nn.Module):
         negative_sample_loss = negative_score
         gg = torch.ones((2))
         gg = gg.new_full(positive_score.size(), model.gamma_intra).cuda()
-        loss = F.relu(gg + positive_score - negative_score).mean()
+        loss = F.relu(gg - positive_score + negative_score).mean()
 
         if args.regularization != 0.0:
             regularization = args.regularization * (
@@ -348,8 +348,9 @@ class DKGE_Model(nn.Module):
                         ranking = (argsort[i, :] == positive_arg[i]).nonzero()
                         assert ranking.size(0) == 1
                         ranking = 1 + ranking.item()
-
-
+                        
+                    if args.fl == 0:
+                        
                         logs.append(
                             {
                                 'MRR_entity':1.0/ranking,
@@ -359,10 +360,19 @@ class DKGE_Model(nn.Module):
                                 'HIT@10_entity':1.0 if ranking <= 10 else 0.0,
                             }
                         )
-                    if args.fl == 0:
                         if step % args.test_log_steps_en == 0:
                             logging.info('Evaluating the model in entity graph... (%d/%d)' % (step, total_steps))
                     else:
+                        
+                        logs.append(
+                            {
+                                'MRR_type':1.0/ranking,
+                                'MR_type':float(ranking),
+                                'HIT@1_type':1.0 if ranking <= 1 else 0.0,
+                                'HIT@3_type':1.0 if ranking <= 3 else 0.0,
+                                'HIT@10_type':1.0 if ranking <= 10 else 0.0,
+                            }
+                        )
                         if step % args.test_log_steps_ty == 0:
                             logging.info('Evaluating the model in type graph... (%d/%d)' % (step, total_steps))
 

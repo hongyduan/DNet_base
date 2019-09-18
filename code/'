@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from __future__ import division
 from __future__ import print_function
 
@@ -69,6 +68,7 @@ class TrainDataset_en(Dataset):
     # 这个数据拼接方式就是collate_fn。这里说明了batch当中每个data由哪些元素组成
     @staticmethod
     def collate_fn(data):
+        print(len(data))
         positive_sample_en_en = torch.stack([_[0] for _ in data], dim=0)
         negative_sample_en_en = torch.stack([_[1] for _ in data], dim=0)
         subsample_weight_en_en = torch.stack([_[2] for _ in data], dim=0)

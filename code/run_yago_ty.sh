@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=1 python run.py --max_steps_ty 18360 \
     --log_steps_ty 180 \
     --test_log_steps_ty 200 \
     --fl 1 \
-    --negative_sample_size_ty 1 \
+    --negative_sample_size_ty 128 \
     --gamma_intra 0.5 \
     --hidden_dim_ty 50 \
     --learning_rate_ty 0.001 \
